@@ -1,11 +1,9 @@
 import collections
 import numpy as np
 import tensorflow as tf
-from sasrec_model import SasRec
 
 class SASRecPipeline:
-    def __init__(self, model, vocab_size, max_context_len=15, pad_item_id=0):
-        self.model = model
+    def __init__(self, vocab_size, max_context_len=15, pad_item_id=0):
         self.vocab_size = vocab_size
         self.max_context_len = max_context_len
         self.pad_item_id = pad_item_id
@@ -91,7 +89,7 @@ class SASRecPipeline:
         padding_mask = tf.cast(item_ids == self.pad_item_id, tf.bool)
         return {"item_ids": item_ids, "padding_mask": padding_mask}
 
-    def recommend(self, user_history, top_k=10):
+    '''def recommend(self, user_history, top_k=10):
         inputs = self.prepare_input(user_history)
         preds = self.model(inputs, training=False)
 
@@ -107,4 +105,4 @@ class SASRecPipeline:
         if hasattr(scores, "numpy"):
             scores = scores.numpy()[0][:top_k]
 
-        return list(zip(candidate_ids, scores))
+        return list(zip(candidate_ids, scores))'''
