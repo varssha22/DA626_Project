@@ -6,7 +6,6 @@ keras
 keras-hub
 keras-rs
 scikit-learn
-collections
 nltk
 scipy
 python-dateutil
