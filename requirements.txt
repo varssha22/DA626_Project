@@ -11,3 +11,4 @@ nltk
 scipy
 python-dateutil
 joblib
+pickle
