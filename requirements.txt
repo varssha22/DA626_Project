@@ -1,1 +1,10 @@
-
+streamlit
+pandas
+numpy
+tensorflow
+keras
+keras-hub
+keras-rs
+scikit-learn
+collections
+nltk
