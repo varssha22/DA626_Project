@@ -5,7 +5,6 @@ import tensorflow as tf
 from models.sasrec_model import SASRec
 from utils.preprocess_sasrec import SASRecPipeline
 from utils.preprocess_cbf import extract_features_for_cbf
-from utils.helpers import extract_features_from_name  # optional, if used in CBF
 
 # --- Load precomputed matrices ---
 with open("models/user_item_matrix_compressed.pkl", "rb") as f:
