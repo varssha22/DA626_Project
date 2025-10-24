@@ -1,3 +1,8 @@
+import sys
+import os
+
+# Add project root to path
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import pickle
 import numpy as np
 import pandas as pd
