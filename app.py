@@ -1,3 +1,7 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__))  # add project root
 import streamlit as st
 import pandas as pd
 from src.recommendation import recommend_for_new_user  # import the hybrid recommender
