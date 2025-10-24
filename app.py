@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from recommendation import recommend_for_new_user  # import the hybrid recommender
+from src.recommendation import recommend_for_new_user  # import the hybrid recommender
 import pickle
 
 st.set_page_config(page_title="Hybrid Product Recommender", layout="wide")
