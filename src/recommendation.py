@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from models.sasrec_model import SASRec
+from models.sasrec_model import SasRec
 from utils.preprocess_sasrec import SASRecPipeline
 from utils.preprocess_cbf import extract_features_for_cbf
 
