@@ -29,7 +29,7 @@ products = products.merge(aisles, on="aisle_id").merge(departments, on="departme
 # --- Rebuild SASRec model (dummy init + load weights) ---
 NUM_ITEMS = products['product_id'].nunique()
 MAX_SEQ_LEN = 15
-sasrec_model = SASRec(NUM_ITEMS, MAX_SEQ_LEN, 64, 2, 2)
+sasrec_model = SasRec(NUM_ITEMS, MAX_SEQ_LEN, 64, 2, 2)
 # Dummy input to build the model
 sasrec_model({"item_ids": tf.zeros((1, MAX_SEQ_LEN), dtype=tf.int32),
               "padding_mask": tf.zeros((1, MAX_SEQ_LEN), dtype=tf.bool)})
