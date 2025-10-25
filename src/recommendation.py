@@ -10,13 +10,12 @@ import tensorflow as tf
 from models.sasrec_model import SasRec
 from utils.preprocess_sasrec import SASRecPipeline
 from utils.preprocess_cbf import extract_features_for_cbf
+from joblib import load
 
 # --- Load precomputed matrices ---
-with open("models/user_item_matrix_compressed.pkl", "rb") as f:
-    user_item_matrix = pickle.load(f)
 
-with open("models/item_sim_matrix_compressed.pkl", "rb") as f:
-    item_sim_matrix = pickle.load(f)
+user_item_matrix = load("models/user_item_matrix_compressed.pkl")
+item_sim_matrix = load("models/item_sim_matrix_compressed.pkl")
 
 with open("models/cbf_pipeline.pkl", "rb") as f:
     cbf_pipeline = pickle.load(f)
