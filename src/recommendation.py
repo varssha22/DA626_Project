@@ -17,8 +17,8 @@ from joblib import load
 user_item_matrix = load("models/user_item_matrix_compressed.pkl")
 item_sim_matrix = load("models/item_sim_matrix_compressed.pkl")
 
-with open("models/cbf_pipeline.pkl", "rb") as f:
-    cbf_pipeline = pickle.load(f)
+'''with open("models/cbf_pipeline.pkl", "rb") as f:
+    cbf_pipeline = pickle.load(f)'''
 
 # --- Load product metadata ---
 products = pd.read_csv("data/products.csv")
@@ -78,7 +78,7 @@ def recommend_for_new_user(selected_products, cbf_pipeline=cbf_pipeline):
         cbf_input_list.append(feats)
     cbf_input_df = pd.concat(cbf_input_list, ignore_index=True)
 
-    if cbf_pipeline is not None:
+    '''if cbf_pipeline is not None:
         cbf_scores = cbf_pipeline.predict_proba(cbf_input_df)[:, 1]
         # Make it full-length vector
         cbf_scores_full = np.zeros(NUM_ITEMS)
@@ -86,10 +86,10 @@ def recommend_for_new_user(selected_products, cbf_pipeline=cbf_pipeline):
             cbf_scores_full[pid-1] = cbf_scores[i]
         cbf_scores = cbf_scores_full
     else:
-        cbf_scores = np.zeros(NUM_ITEMS)
+        cbf_scores = np.zeros(NUM_ITEMS)'''
 
     # 5️⃣ Weighted hybrid fusion
-    final_scores = 0.5 * sasrec_scores + 0.3 * cf_scores + 0.2 * cbf_scores
+    final_scores = 0.5 * sasrec_scores + 0.3 * cf_scores #+ 0.2 * cbf_scores
     top_indices = np.argsort(final_scores)[::-1][:6]
     recommendations = products.iloc[top_indices][["product_name", "aisle", "department"]]
 
