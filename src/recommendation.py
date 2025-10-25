@@ -36,7 +36,6 @@ products = products.merge(aisles, on="aisle_id").merge(departments, on="departme
 NUM_ITEMS = products['product_id'].nunique()
 MAX_SEQ_LEN = 15
 
-sasrec_model = SasRec(NUM_ITEMS, MAX_SEQ_LEN, 64, 2, 2)
 sasrec_model = SasRec(vocabulary_size=NUM_ITEMS+1, 
                       max_sequence_length=MAX_SEQ_LEN, 
                       hidden_dim=32, 
