@@ -1,9 +1,11 @@
 import collections
 import numpy as np
 import tensorflow as tf
+from models.sasrec_model import SasRec
 
 class SASRecPipeline:
-    def __init__(self, vocab_size, max_context_len=15, pad_item_id=0):
+    def __init__(self,model, vocab_size, max_context_len=15, pad_item_id=0):
+        self.model = model
         self.vocab_size = vocab_size
         self.max_context_len = max_context_len
         self.pad_item_id = pad_item_id

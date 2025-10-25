@@ -17,8 +17,14 @@ from joblib import load
 user_item_matrix = load("models/user_item_matrix_compressed.pkl")
 item_sim_matrix = load("models/item_sim_matrix_compressed.pkl")
 
+
 '''with open("models/cbf_pipeline.pkl", "rb") as f:
     cbf_pipeline = pickle.load(f)'''
+
+
+"""with open("models/cbf_pipeline.pkl", "rb") as f:
+    cbf_pipeline = pickle.load(f)"""
+
 
 # --- Load product metadata ---
 products = pd.read_csv("data/products.csv")
@@ -29,17 +35,25 @@ products = products.merge(aisles, on="aisle_id").merge(departments, on="departme
 # --- Rebuild SASRec model (dummy init + load weights) ---
 NUM_ITEMS = products['product_id'].nunique()
 MAX_SEQ_LEN = 15
+
 sasrec_model = SasRec(NUM_ITEMS, MAX_SEQ_LEN, 64, 2, 2)
+sasrec_model = SasRec(vocabulary_size=NUM_ITEMS+1, 
+                      max_sequence_length=MAX_SEQ_LEN, 
+                      hidden_dim=32, 
+                      num_heads=2, 
+                      num_layers=2,
+                      dropout=0.3)
+
 # Dummy input to build the model
 sasrec_model({"item_ids": tf.zeros((1, MAX_SEQ_LEN), dtype=tf.int32),
               "padding_mask": tf.zeros((1, MAX_SEQ_LEN), dtype=tf.bool)})
 sasrec_model.load_weights("models/best_sasrec_model (1).h5")
 
 # --- SASRec pipeline ---
-sasrec_pipeline = SASRecPipeline(sasrec_model, NUM_ITEMS, max_context_len=MAX_SEQ_LEN)
+sasrec_pipeline = SASRecPipeline(sasrec_model, vocab_size=NUM_ITEMS, max_context_len=MAX_SEQ_LEN)
 
 # --- Hybrid recommender for a new user ---
-def recommend_for_new_user(selected_products, cbf_pipeline=cbf_pipeline):
+def recommend_for_new_user(selected_products):#, cbf_pipeline=cbf_pipeline):
     """
     selected_products: list of product names the user has added so far
     cbf_pipeline: trained CBF pipeline
@@ -64,13 +78,32 @@ def recommend_for_new_user(selected_products, cbf_pipeline=cbf_pipeline):
     # Optional normalization
     if sasrec_scores.max() > 0:
         sasrec_scores /= sasrec_scores.max()
-
+    
     # 3️⃣ CF scores
-    cf_scores = item_sim_matrix.loc[user_history_ids].mean(axis=0).values
+    valid_ids = [pid for pid in user_history_ids if pid in item_sim_matrix.index]
+
+    if valid_ids:
+        cf_scores = item_sim_matrix.loc[valid_ids].mean(axis=0).values
+    else:
+        # if none of the user's items exist in CF matrix, fill with zeros
+        cf_scores = np.zeros(len(item_sim_matrix.columns))
+
     if cf_scores.max() > 0:
         cf_scores /= cf_scores.max()
 
-    # 4️⃣ CBF scores
+    # --- Expand CF scores to full SASRec item set ---
+    cf_scores_full = np.zeros(len(sasrec_scores))  # length 49688
+    cf_product_ids = item_sim_matrix.columns.tolist()  # ✅ use CF matrix columns (actual product IDs)
+
+    for i, pid in enumerate(cf_product_ids):
+        # ✅ fill only where pid is within SASRec range
+        if 0 <= pid - 1 < len(cf_scores_full):
+            cf_scores_full[pid - 1] = cf_scores[i]
+
+    cf_scores = cf_scores_full
+
+
+    """# 4️⃣ CBF scores
     cbf_input_list = []
     for p_name in selected_products:
         pid = products[products['product_name'] == p_name]['product_id'].values[0]
@@ -87,6 +120,7 @@ def recommend_for_new_user(selected_products, cbf_pipeline=cbf_pipeline):
         cbf_scores = cbf_scores_full
     else:
         cbf_scores = np.zeros(NUM_ITEMS)'''
+        cbf_scores = np.zeros(NUM_ITEMS)"""
 
     # 5️⃣ Weighted hybrid fusion
     final_scores = 0.5 * sasrec_scores + 0.3 * cf_scores #+ 0.2 * cbf_scores
