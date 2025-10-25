@@ -89,14 +89,14 @@ class SASRecPipeline:
         padding_mask = tf.cast(item_ids == self.pad_item_id, tf.bool)
         return {"item_ids": item_ids, "padding_mask": padding_mask}
 
-    '''def recommend(self, user_history, top_k=10):
+    def recommend(self, user_history, top_k=10):
         inputs = self.prepare_input(user_history)
         preds = self.model(inputs, training=False)
 
         if isinstance(preds, dict) and "predictions" in preds:
-            candidate_ids, scores = preds["predictions"]
+            scores, candidate_ids = preds["predictions"]
         elif isinstance(preds, (tuple, list)):
-            candidate_ids, scores = preds
+            scores, candidate_ids = preds
         else:
             raise ValueError(f"Unexpected model output type: {type(preds)}")
 
@@ -105,4 +105,4 @@ class SASRecPipeline:
         if hasattr(scores, "numpy"):
             scores = scores.numpy()[0][:top_k]
 
-        return list(zip(candidate_ids, scores))'''
+        return list(zip(candidate_ids, scores))
