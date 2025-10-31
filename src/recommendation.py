@@ -59,8 +59,60 @@ def recommend_for_new_user(selected_products):#, cbf_pipeline=cbf_pipeline):
     user_history_ids = products[products["product_name"].isin(selected_products)]["product_id"].tolist()
     if len(user_history_ids) == 0:
         return pd.DataFrame(columns=["product_name", "aisle", "department"])
+    
+    NUM_ITEMS = products.shape[0]
 
-    # 2️⃣ SASRec scores
+    # =========================================================
+    # 🔹 1️⃣ SASRec Recommendations
+    # =========================================================
+    sasrec_df=pd.DataFrame()
+    if len(user_history_ids)>=10:
+        sasrec_recs = sasrec_pipeline.recommend(user_history_ids, top_k=3)
+        sasrec_recs = [(pid, score) for pid, score in sasrec_recs if 1 <= pid <= NUM_ITEMS]
+        sasrec_pids = [pid for pid, _ in sasrec_recs]
+
+        sasrec_df = products.loc[products["product_id"].isin(sasrec_pids), ["product_name", "aisle", "department"]].copy()
+        #sasrec_df["source"] = "SASRec"
+
+    # =========================================================
+    # 🔹 2️⃣ CF Recommendations
+    # =========================================================
+    valid_ids = [pid for pid in user_history_ids if pid in item_sim_matrix.index]
+
+    if valid_ids:
+        cf_scores = item_sim_matrix.loc[valid_ids].mean(axis=0).values
+        #cf_scores /= (cf_scores.max() + 1e-8)
+        cf_top_indices = np.argsort(cf_scores)[::-1][:3]
+        cf_pids = item_sim_matrix.columns[cf_top_indices].tolist()
+    else:
+        cf_pids = []
+
+    cf_df = products.loc[products["product_id"].isin(cf_pids), ["product_name", "aisle", "department"]].copy()
+    #cf_df["source"] = "CF"
+
+     # =========================================================
+    # 🔹 3️⃣ CBF Recommendations (based on last item)
+    # =========================================================
+    cbf_scores = get_cbf_scores(selected_products, products, nn, product_features)
+    cbf_top_indices = np.argsort(cbf_scores)[::-1]
+    cbf_top_indices = [idx for idx in cbf_top_indices if products.iloc[idx]["product_name"]!=selected_products[-1]]
+
+    # Take top 3 remaining
+    cbf_top_indices = cbf_top_indices[:3]
+    cbf_pids = products.iloc[cbf_top_indices]["product_id"].tolist()
+
+    cbf_df = products.iloc[cbf_top_indices][["product_name", "aisle", "department"]].copy()
+    #cbf_df["source"] = "CBF"
+
+    # =========================================================
+    # 🔹 4️⃣ Combine All
+    # =========================================================
+    combined = pd.concat([cbf_df, cf_df, sasrec_df]).drop_duplicates(subset=["product_name"]).reset_index(drop=True)
+
+    return combined
+
+''' 
+   # 2️⃣ SASRec scores
     sasrec_recs = sasrec_pipeline.recommend(user_history_ids, top_k=NUM_ITEMS)
     sasrec_scores = np.zeros(NUM_ITEMS)
     for pid, score in sasrec_recs:
@@ -98,11 +150,11 @@ def recommend_for_new_user(selected_products):#, cbf_pipeline=cbf_pipeline):
     cbf_scores = get_cbf_scores(selected_products=selected_products,products=cbf_products,nn=nn,product_features=product_features)
 
     # 5️⃣ Weighted hybrid fusion
-    final_scores = 0.3 * sasrec_scores + 0.2 * cf_scores + 0.5 * cbf_scores
+    final_scores = cbf_scores #0.3 * sasrec_scores + 0.2 * cf_scores + 
     top_indices = np.argsort(final_scores)[::-1][:6]
     recommendations = products.iloc[top_indices][["product_name", "aisle", "department"]]
 
-    return recommendations
+    return recommendations'''
 
 
 """    
