@@ -7,29 +7,36 @@ import numpy as np
 
 def get_cbf_scores(selected_products, products, nn, product_features):
     """
-    Computes CBF similarity scores given the selected products.
+    Computes CBF similarity scores for the *most recently added* product in the cart.
     Returns a numpy array of scores (length = total # products)
     """
     cbf_scores = np.zeros(product_features.shape[0])
 
-    # Get indices of the selected products
-    selected_ids = products[products["product_name"].isin(selected_products)].index.tolist()
-    if not selected_ids:
+    if not selected_products:
         return cbf_scores
 
-    # For each selected product, get cosine similarity scores
-    for idx in selected_ids:
-        distances, indices = nn.kneighbors(product_features[idx], n_neighbors=len(products))
-        similarities = 1 - distances.flatten()  # cosine → similarity
+    # --- 1️⃣ Identify the most recently added product ---
+    latest_product = selected_products[-1]
 
-        # Aggregate max similarity per product
-        cbf_scores[indices] = np.maximum(cbf_scores[indices], similarities)
+    # --- 2️⃣ Get its index in the products dataframe ---
+    if latest_product not in products["product_name"].values:
+        return cbf_scores
 
-    # Normalize
+    latest_idx = products[products["product_name"] == latest_product].index[0]
+
+    # --- 3️⃣ Compute similarity to all other products ---
+    distances, indices = nn.kneighbors(product_features[latest_idx], n_neighbors=len(products))
+    similarities = 1 - distances.flatten()  # cosine distance → similarity
+
+    # --- 4️⃣ Fill similarity scores directly ---
+    cbf_scores[indices] = similarities
+
+    # --- 5️⃣ Normalize to [0, 1] ---
     if cbf_scores.max() > 0:
         cbf_scores /= cbf_scores.max()
 
     return cbf_scores
+
 
 '''def extract_features_for_cbf(product_id, current_cart, df_products, user_last_order_time=None):
     """
