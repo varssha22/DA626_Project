@@ -5,10 +5,8 @@ import pandas as pd
 import base64
 from src.recommendation import recommend_for_new_user
 
-# --- PAGE CONFIG ---
 st.set_page_config(page_title="🛒 Smart Grocery Recommender", layout="wide")
 
-# --- BACKGROUND IMAGE ---
 def set_background(image_file):
     with open(image_file, "rb") as img:
         encoded = base64.b64encode(img.read()).decode()
@@ -42,7 +40,6 @@ def set_background(image_file):
     )
 
 set_background("utils/shopping_bg.jpeg")
-# --- FONT & COLOR STYLING ---
 st.markdown(
     """
     <style>
@@ -113,8 +110,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-# --- CACHE PRODUCT DATA ---
 @st.cache_resource(show_spinner=False)
 def load_products():
     products = pd.read_csv("data/products.csv")
@@ -125,41 +120,34 @@ def load_products():
 
 products = load_products()
 
-# --- CACHE RECOMMENDATIONS ---
 @st.cache_data(show_spinner=False)
 def get_recommendations(cart):
     if not cart:
         return pd.DataFrame()
     return recommend_for_new_user(cart)
 
-# --- TITLE & HEADER ---
 st.title("🥦 Smart Grocery Recommender")
 st.write("Select items from the dropdown and discover your next favorite groceries instantly! 🛍️")
 
-# --- CART SESSION ---
 if 'user_cart' not in st.session_state:
     st.session_state.user_cart = []
 
-# --- PRODUCT DROPDOWN (SCROLLABLE) ---
 product_to_add = st.selectbox(
     "🛒 Choose a product to add:",
     options=products["product_name"].tolist(),
     key="product_select_scroll"
 )
 
-# --- ADD TO CART BUTTON ---
 if st.button("➕ Add to Cart"):
     if product_to_add and product_to_add not in st.session_state.user_cart:
         st.session_state.user_cart.append(product_to_add)
 
-# --- DISPLAY CART ---
 st.markdown("### 🛍️ Your Cart")
 if st.session_state.user_cart:
     st.write(", ".join(st.session_state.user_cart))
 else:
     st.info("Your cart is empty. Start by adding a product above! 🍎")
 
-# --- DISPLAY RECOMMENDATIONS ---
 if st.session_state.user_cart:
     recs = get_recommendations(st.session_state.user_cart)
     if not recs.empty:
