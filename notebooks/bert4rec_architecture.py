@@ -3,95 +3,87 @@ from tensorflow.keras import layers, models, regularizers, callbacks
 import collections
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-class MaskedItemModeling(layers.Layer):
-    def __init__(self, mask_token_id, mask_prob=0.15):
+def masked_sparse_categorical_crossentropy(y_true, y_pred):
+    mask = tf.not_equal(y_true, -100)             
+    mask_f = tf.cast(mask, tf.float32)
+
+    y_true_safe = tf.where(mask, y_true, tf.zeros_like(y_true))
+
+    per_token_loss = tf.keras.losses.sparse_categorical_crossentropy(
+        y_true_safe, y_pred, from_logits=True
+    ) 
+
+    per_token_loss = per_token_loss * mask_f
+    denom = tf.reduce_sum(mask_f) + 1e-8
+    return tf.reduce_sum(per_token_loss) / denom
+
+class WarmUp(tf.keras.optimizers.schedules.LearningRateSchedule):
+    def __init__(self, initial_learning_rate, decay_schedule_fn, warmup_steps):
         super().__init__()
-        self.mask_token_id = mask_token_id
-        self.mask_prob = mask_prob
+        self.initial_learning_rate = initial_learning_rate
+        self.decay_schedule_fn = decay_schedule_fn
+        self.warmup_steps = warmup_steps
 
-    def call(self, inputs, training=None):
-        if not training:
-            return inputs, tf.zeros_like(inputs, dtype=tf.bool)
-        # Random mask positions
-        mask = tf.random.uniform(shape=tf.shape(inputs)) < self.mask_prob
-        masked_inputs = tf.where(mask, self.mask_token_id, inputs)
-        return masked_inputs, mask
+    def __call__(self, step):
+        warmup_lr = self.initial_learning_rate * (tf.cast(step, tf.float32) / tf.cast(self.warmup_steps, tf.float32))
+        return tf.cond(step < self.warmup_steps, lambda: warmup_lr, lambda: self.decay_schedule_fn(step - self.warmup_steps))
 
-def transformer_encoder(inputs, num_heads, ff_dim, dropout):
-    attn_output = layers.MultiHeadAttention(
-        num_heads=num_heads,
-        key_dim=inputs.shape[-1]
-    )(inputs, inputs)
+    def get_config(self):
+        return {
+            "initial_learning_rate": self.initial_learning_rate,
+            "warmup_steps": self.warmup_steps,
+            "decay_schedule_fn": None
+        }
 
-    attn_output = layers.Dropout(dropout)(attn_output)
-    out1 = layers.LayerNormalization(epsilon=1e-6)(inputs + attn_output)
+def transformer_encoder(x, num_heads, ff_dim, dropout, emb_dim):
+    key_dim = max(emb_dim // num_heads, 1)
+    attn = layers.MultiHeadAttention(num_heads=num_heads, key_dim=key_dim)(x, x)
+    attn = layers.Dropout(dropout)(attn)
+    out1 = layers.LayerNormalization(epsilon=1e-6)(x + attn)
 
-    ffn_output = layers.Dense(ff_dim, activation='relu',
-                              kernel_regularizer=regularizers.l2(0.01))(out1)
-    ffn_output = layers.Dense(inputs.shape[-1],
-                              kernel_regularizer=regularizers.l2(0.01))(ffn_output)
-    ffn_output = layers.Dropout(dropout)(ffn_output)
+    ffn = layers.Dense(ff_dim, activation='gelu')(out1)
+    ffn = layers.Dense(emb_dim)(ffn)
+    ffn = layers.Dropout(dropout)(ffn)
 
-    return layers.LayerNormalization(epsilon=1e-6)(out1 + ffn_output)
+    return layers.LayerNormalization(epsilon=1e-6)(out1 + ffn)
 
 
-def build_bert4rec(
-    vocab_size,
-    max_len,
-    emb_dim=128,
-    num_heads=4,
-    ff_dim=128,
-    num_layers=2,
-    dropout=0.2,
-    initial_lr=1e-1,
-    end_lr=1e-4,
-    decay_steps=10000,
-    mask_prob=0.2,
-):
-    inputs = layers.Input(shape=(max_len,), dtype=tf.int32)
+def build_bert4rec(vocab_size, max_len, emb_dim=128, num_heads=4, ff_dim=256, num_layers=2, dropout=0.1):
+    inputs = layers.Input(shape=(max_len,), dtype=tf.int32, name='input_ids')
 
-    mask_layer = MaskedItemModeling(mask_token_id=vocab_size - 1, mask_prob=mask_prob)
-    masked_inputs, mask_positions = mask_layer(inputs)
+    token_emb = layers.Embedding(input_dim=vocab_size, output_dim=emb_dim, mask_zero=True, name='token_embedding')(inputs)
 
-    token_emb = layers.Embedding(
-        vocab_size,
-        emb_dim,
-        embeddings_initializer=tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.02),
-        embeddings_regularizer=regularizers.l2(0.01)
-    )(masked_inputs)
+    positions = tf.range(start=0, limit=max_len, delta=1)
+    pos_layer = layers.Embedding(input_dim=max_len, output_dim=emb_dim, name='pos_embedding')
+    pos_emb = pos_layer(positions)
+    pos_emb = tf.expand_dims(pos_emb, axis=0) 
+    x = token_emb + pos_emb                   
 
-    pos_emb = layers.Embedding(
-        max_len,
-        emb_dim,
-        embeddings_initializer=tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.02)
-    )(tf.range(start=0, limit=max_len))
-
-    x = token_emb + pos_emb
     x = layers.Dropout(dropout)(x)
 
-
     for _ in range(num_layers):
-        x = transformer_encoder(x, num_heads, ff_dim, dropout)
+        x = transformer_encoder(x, num_heads=num_heads, ff_dim=ff_dim, dropout=dropout, emb_dim=emb_dim)
 
+    logits = layers.Dense(vocab_size, name='logits')(x)
 
-    outputs = layers.Dense(vocab_size, activation='softmax',
-                           kernel_regularizer=regularizers.l2(0.01))(x)
-
-    model = models.Model(inputs=inputs, outputs=outputs)
-
+    model = models.Model(inputs=inputs, outputs=logits)
+    initial_lr = 1e-3 
+    total_steps = 10000
+    warmup_steps = int(0.1 * total_steps)
+    
     lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
         initial_learning_rate=initial_lr,
-        decay_steps=decay_steps,
-        end_learning_rate=end_lr,
-        power=1.0 
+        decay_steps=total_steps - warmup_steps,
+        end_learning_rate=0.0
     )
-
+    schedule = WarmUp(initial_lr, lr_schedule, warmup_steps)
+    
     optimizer = tf.keras.optimizers.Adam(
-        learning_rate=0.01,
+        learning_rate=schedule,
         beta_1=0.9,
         beta_2=0.999,
-        clipnorm=5.0 
+        epsilon=1e-8,
+        clipnorm=2.0
     )
-    model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy')
-
+    model.compile(optimizer=optimizer, loss=masked_sparse_categorical_crossentropy)
     return model
