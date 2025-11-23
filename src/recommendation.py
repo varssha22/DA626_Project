@@ -8,24 +8,18 @@ from joblib import load
 import pickle
 import warnings
 
-# Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.preprocess_bert4rec import TFLiteBert4RecPipeline
 from utils.cbf_scores_func import get_cbf_scores
 
-# Disable GPU on Streamlit Cloud
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-
-# ===================== LOAD CORE MATRICES =====================
 
 user_item_matrix = load("models/user_item_matrix_compressed.pkl")
 item_sim_matrix = load("models/item_sim_matrix_compressed.pkl")
 nn, product_features, cbf_products = load("models/cbf_model.joblib")
 
-
-# ===================== LOAD METADATA =====================
 
 products = pd.read_csv("data/products.csv")
 aisles = pd.read_csv("data/aisles.csv")
@@ -36,8 +30,6 @@ products = products.merge(aisles, on="aisle_id").merge(departments, on="departme
 NUM_ITEMS = products["product_id"].nunique()
 MAX_SEQ_LEN = 50
 
-
-# ===================== LOAD / BUILD ID MAPPINGS =====================
 
 mapping_p_to_idx_path = "models/product_id_to_index.pkl"
 mapping_idx_to_p_path = "models/index_to_product_id.pkl"
@@ -59,8 +51,6 @@ else:
 VOCAB_SIZE = max(idx_to_product_id.keys()) + 1
 
 
-# ===================== LOAD BERT4REC TFLITE MODEL =====================
-
 bert_pipeline = TFLiteBert4RecPipeline(
     model_path="models/bert4rec_compressed.tflite",
     vocab_size=VOCAB_SIZE,
@@ -69,30 +59,16 @@ bert_pipeline = TFLiteBert4RecPipeline(
 )
 
 
-# =============================================================
-#                    HYBRID RECOMMENDER
-# =============================================================
-
 def recommend_for_new_user(selected_products):
-    """
-    selected_products: list of product names the user selected
-    returns: hybrid recommendations (CBF + CF + BERT4Rec)
-    """
-
+    
     if not selected_products:
         return pd.DataFrame(columns=["product_name", "aisle", "department"])
 
-    # Convert product names → raw IDs
     user_history_ids = products[
-        products["product_name"].isin(selected_products)
-    ]["product_id"].tolist()
+        products["product_name"].isin(selected_products)]["product_id"].tolist()
 
     if len(user_history_ids) == 0:
         return pd.DataFrame(columns=["product_name", "aisle", "department"])
-
-    # =============================================================
-    # 1️⃣ BERT4Rec
-    # =============================================================
 
     bert_df = pd.DataFrame()
 
@@ -119,10 +95,6 @@ def recommend_for_new_user(selected_products):
                 ["product_name", "aisle", "department"]
             ].copy()
 
-    # =============================================================
-    # 2️⃣ Collaborative Filtering (CF)
-    # =============================================================
-
     valid_ids = [pid for pid in user_history_ids if pid in item_sim_matrix.index]
 
     if valid_ids:
@@ -136,10 +108,6 @@ def recommend_for_new_user(selected_products):
         products["product_id"].isin(cf_pids),
         ["product_name", "aisle", "department"]
     ].copy()
-
-    # =============================================================
-    # 3️⃣ Content-Based Filtering (CBF)
-    # =============================================================
 
     cbf_scores = get_cbf_scores(selected_products, products, nn, product_features)
     cbf_top_indices = np.argsort(cbf_scores)[::-1]
@@ -155,9 +123,6 @@ def recommend_for_new_user(selected_products):
         ["product_name", "aisle", "department"]
     ].copy()
 
-    # =============================================================
-    # 4️⃣ Combine All
-    # =============================================================
 
     combined = pd.concat(
         [cbf_df, cf_df, bert_df],
