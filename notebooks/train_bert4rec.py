@@ -89,7 +89,7 @@ print("One-batch loss:", loss)
 history = model.fit(
     X_masked_train, y_masked_train,
     validation_data=(X_masked_val, y_masked_val),
-    epochs=100,
+    epochs=10,
     batch_size=128,
     callbacks=[checkpoint_cb, nan_cb],
     verbose=1
