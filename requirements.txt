@@ -10,3 +10,4 @@ nltk
 scipy
 python-dateutil
 joblib
+gensim

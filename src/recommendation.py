@@ -17,8 +17,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 user_item_matrix = load("models/user_item_matrix_compressed.pkl")
-item_sim_matrix = load("models/item_sim_matrix_compressed.pkl")
-nn, product_features, cbf_products = load("models/cbf_model.joblib")
+item_sim_matrix = load("models\item_sim_matrix_compressed (1).pkl")
+nn, product_features, cbf_products = load("models/cbf_model_compressed.joblib")
 
 
 products = pd.read_csv("data/products.csv")

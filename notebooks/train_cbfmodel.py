@@ -13,7 +13,7 @@ DATA_DIR = "data/"
 products = pd.read_csv(os.path.join(DATA_DIR, "products.csv"))
 aisles   = pd.read_csv(os.path.join(DATA_DIR, "aisles.csv"))
 depart   = pd.read_csv(os.path.join(DATA_DIR, "departments.csv"))
-df_prior = pd.read_csv(os.path.join(DATA_DIR, "order_products__prior.csv"))
+df_prior = pd.read_parquet(os.path.join(DATA_DIR, "order_products__prior.parquet"))
 
 products = products.merge(aisles, on="aisle_id", how="left")
 products = products.merge(depart, on="department_id", how="left")
