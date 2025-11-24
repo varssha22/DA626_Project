@@ -43,26 +43,21 @@ set_background("utils/shopping_bg.jpeg")
 st.markdown(
     """
     <style>
-    /* ----- Specific heading colors ----- */
-    /* Title produced by st.title() */
-    .stApp h1 {
-        color: #FFD700 !important;   /* gold for main title */
+
+    h1 {
+        color: #002f06 !important;
     }
-    /* Subheadings like st.markdown("### ...") */
-    .stApp h2, .stApp h3 {
-        color: #34a853 !important;   /* green for subheadings */
-        font-weight: 700;
+    h2, h3 {
+        color: #11823b !important;
+        font-weight: 700 !important;
     }
 
-    /* ----- Labels and small headings ----- */
-    /* Label text for widgets (selectbox labels, etc.) */
-    label, .stMarkdown, .stText {
-        color: #FFA500 !important;   /* orange */
-        font-weight: 600;
+    label, p, span, .stMarkdown {
+        color: #02231c !important;
+        font-weight: 600 !important;
     }
 
-    /* ----- Buttons ----- */
-    div.stButton > button:first-child {
+    .stButton > button {
         background-color: #34a853 !important;
         color: #ffffff !important;
         border-radius: 12px !important;
@@ -71,44 +66,42 @@ st.markdown(
         border: none !important;
         transition: 0.2s !important;
     }
-    div.stButton > button:first-child:hover {
+
+    .stButton > button:hover {
         background-color: #2e8b48 !important;
         transform: scale(1.03);
     }
 
-    /* ----- Selectbox inner box styling ----- */
-    /* This targets the visible select box container */
-    div[data-baseweb="select"] > div {
-        background-color: rgba(52,168,83,0.12) !important; /* soft green bg */
+    [data-baseweb="select"] > div {
+        background-color: rgba(52,168,83,0.12) !important;
         border-radius: 8px !important;
-        color: #ffffff !important;
-    }
-    /* When the options list is shown, style the list items */
-    div[data-baseweb="select"] ul li {
-        color: #222 !important; /* dark text in the dropdown options */
     }
 
-    /* ----- Text input styling ----- */
-    input[type="text"], .stTextInput input {
+    [data-baseweb="select"] ul li {
+        color: #222 !important;
+    }
+
+    .stTextInput > div > div > input {
         background-color: rgba(255,255,255,0.10) !important;
         color: #ffffff !important;
         border-radius: 8px !important;
         border: 1px solid #34a853 !important;
     }
 
-    /* ----- DataFrame/table text color ----- */
-    .stDataFrame table td, .stDataFrame table th {
+    .dataframe tbody td,
+    .dataframe thead th {
         color: #f5f5f5 !important;
     }
 
-    /* ----- small helper: keep links visible ----- */
     a, a:link, a:visited {
         color: #F4B400 !important;
     }
+
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 @st.cache_resource(show_spinner=False)
 def load_products():
