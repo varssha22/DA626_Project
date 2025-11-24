@@ -134,28 +134,22 @@ checkpoints/bert4rec_best.keras
 
 ---
 
-## ▶ 5. Run the Full Recommender System
-
-Once all models are trained, you can run:
-
-```bash
-python main.py
-```
-
-`main.py`:
-- Loads CF, CBF, and BERT4Rec models  
-- Computes recommendation scores  
-- Merges them  
-- Returns top-K product recommendations  
-
----
-
-## 🧪 6. Run Evaluation (NDCG, Precision, Recall, HitRate)
+## 🧪 5. Run Evaluation (NDCG, Precision, Recall, HitRate)
 
 If you want to evaluate the models:
 
 ```bash
 python evaluate.py
+```
+
+---
+
+## 🧪 6. Run Streamlit app
+
+If you want to see the top recommendations:
+
+```bash
+streamlit run app.py
 ```
 
 ---
