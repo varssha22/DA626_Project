@@ -7,7 +7,7 @@ DATA_DIR = "data/"
 SAVE_DIR = "saved_cf/"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-df_prior = pd.read_parquet(os.path.join(DATA_DIR, "order_products__prior.parquet"))
+df_prior = pd.read_csv(os.path.join(DATA_DIR, "order_products__prior.csv"))
 
 all_users = df_prior['user_id'].unique()
 selected_users = np.random.choice(all_users, size=50000, replace=False)
