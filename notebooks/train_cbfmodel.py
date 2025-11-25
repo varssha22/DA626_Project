@@ -82,5 +82,5 @@ with open("saved_cbf/scaler.pkl", "wb") as f:
 
 sp.save_npz("saved_cbf/product_features.npz", product_features)
 
-with open("saved_cbf/nn_model.pkl", "wb") as f:
+with open("models/cbf_model.pkl", "wb") as f:
     pickle.dump(nn, f)
