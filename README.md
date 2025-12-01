@@ -7,7 +7,7 @@ This guide explains how to set up, train, and run the full **Personalized Retail
 ---
 
 ## 📥 The instructions for app running is given in a seperate word file that you can find in the repo.
-# Name: Instructions_on_app_running.docx
+**Name: Instructions_on_app_running.docx**
 
 ## 📦 Download the zip file from this link
 [Zip file](https://drive.google.com/file/d/1tnMtwTz78qfoPOWzE_m-jdMdLlOC54v1/view?usp=sharing)
